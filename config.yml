@@ -1,0 +1,117 @@
+templates:
+
+  torrent-tv-shows:
+    transmission:
+      host: localhost
+      port: 9091
+      username: transmission
+      password: raspberry
+      path: /mnt/timecapsule/Media/TV Series/{{ series_name }}/
+    tvmaze_lookup: yes
+    trakt_lookup:
+      username: *****
+      account: *****
+    if:
+      - trakt_watched: reject
+      - trakt_collected: reject
+    download: /mnt/timecapsule/Media/Torrents/
+
+  torrent-movies:
+    transmission:
+      host: localhost
+      port: 9091
+      username: transmission
+      password: raspberry
+      path: /mnt/timecapsule/Media/Movies/
+    tmdb_lookup: yes
+    imdb_lookup: yes
+    seen_movies: loose
+    imdb:
+      min_score: 6.5
+      min_votes: 4000
+      min_year: 2012
+      reject_languages:
+        - Hindi
+    trakt_lookup:
+      username: *****
+      account: *****
+    if:
+      - trakt_watched: reject
+      - trakt_collected: reject
+    download: /mnt/timecapsule/Media/Torrents/
+    regexp:
+      reject:
+        - \b3-?D\b: {from: title}        # 3D movies        
+        
+  notification-tv-shows:
+    notify:
+      entries:
+        message: |+
+          *{{series_name}}* - {{series_id}}
+          [Image]({{tvmaze_series_original_image|replace("_", "%5F")}})
+        via:
+          - telegram:
+              bot_token: *****
+              parse_mode: markdown
+              recipients:
+                - username: *****
+
+  notification-movies:
+    notify:
+      entries:
+        message: |+
+          *{{imdb_name}}* - ({{imdb_year}})
+          {{imdb_score}}/10 - {{imdb_votes}} votes
+          [Image]({{tmdb_posters[0]|replace("_", "%5F")}})
+          [Movie Page]({{imdb_url|d('')}})
+        via:
+          - telegram:
+              bot_token: *****
+              parse_mode: markdown
+              recipients:
+                - username: *****
+tasks:
+
+  TVSHOWS_task:
+    rss: https://www.linkomanija.net/rss.php?feed=dl&cat[]=60&passkey=*****
+    series:
+      720p:
+        - Family Guy
+        - Greys Anatomy
+        - The Big Bang Theory
+        - Modern Family
+        - Westworld
+        - South Park
+        - The Grand Tour
+        - Sherlock:
+            identified_by: date
+        - Homeland
+        - Better Call Saul
+        - Fargo
+        - Game of Thrones
+        - Silicon Valley
+        - The X-Files
+        - The Simpsons
+        - Mr Mercedes
+        - The Handmaids Tale
+        - Rick and Morty
+    template:
+      - torrent-tv-shows
+      - notification-tv-shows
+
+  MOVIES_task_720p:
+    rss: https://www.linkomanija.net/rss.php?feed=dl&cat[]=52&passkey=*****
+    priority: 1
+    quality: 720p remux+
+    template:
+      - torrent-movies
+      - notification-movies
+
+  MOVIES_task_1080p:
+    rss: https://www.linkomanija.net/rss.php?feed=dl&cat[]=52&passkey=*****
+    priority: 2
+    quality: 1080p remux+
+    delay: 2 hours
+    template:
+      - torrent-movies
+      - notification-movies
